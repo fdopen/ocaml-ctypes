@@ -8,7 +8,12 @@
 (* Stub generation driver for the macro tests. *)
 
 let cheader = "
+#if !defined(_WIN32) || !defined(_MSC_VER)
 #include <tgmath.h>
+#else
+#include <math.h>
+#define exp(a) (sizeof (a) == sizeof (float) ? expf(a) : exp(a))
+#endif
 "
 
 let () = Tests_common.run ~cheader Sys.argv (module Functions.Stubs)

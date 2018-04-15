@@ -5,7 +5,7 @@
  * See the file LICENSE for details.
  */
 
-#if !__USE_MINGW_ANSI_STDIO && (defined(__MINGW32__) || defined(__MINGW64__))
+#if defined(__MINGW32__) || defined(__MINGW64__)
 #define __USE_MINGW_ANSI_STDIO 1
 #endif
 
@@ -21,9 +21,10 @@
 #include <stdint.h>
 #include <float.h>
 #include <math.h>
-#include <complex.h>
+#include <string.h>
 
 #include "ctypes_ldouble_stubs.h"
+#include "complex_helper.h"
 
 /*********************** long double *************************/
 
@@ -65,12 +66,17 @@
 #define LDOUBLE_VALUE_BYTES LDOUBLE_STORAGE_BYTES
 #endif
 
-#define ldouble_custom_val(V) (*(long double *)(Data_custom_val(V)))
+static inline long double ldouble_custom_val(value v)
+{
+  long double r;
+  memcpy(&r, Data_custom_val(v), sizeof(r));
+  return r;
+}
 
 // initialized in ldouble_init
 static long double nan_;
 
-static long double norm(long double x) {
+static long double ldouble_norm(long double x) {
   switch (fpclassify(x)){
   case FP_ZERO      : return 0.0L; // if -0 force to +0.
   case FP_NAN       : return nan_;  // cannonical nan
@@ -102,7 +108,7 @@ static uint32_t ldouble_mix_hash(uint32_t hash, long double d) {
     long double d;
     uint32_t a[(LDOUBLE_STORAGE_BYTES+3)/4];
   } u;
-  u.d = norm(d);
+  u.d = ldouble_norm(d);
 
   if (LDOUBLE_VALUE_BYTES == 16) {
     // ieee quad or __ibm128
@@ -149,7 +155,7 @@ static void ldouble_serialize_data(long double *q) {
 }
 
 static void ldouble_serialize(value v, uintnat *wsize_32, uintnat *wsize_64) {
-  long double p = norm(ldouble_custom_val(v));
+  long double p = ldouble_norm(ldouble_custom_val(v));
   caml_serialize_int_1(LDBL_MANT_DIG);
   ldouble_serialize_data(&p);
   *wsize_32 = *wsize_64 = sizeof(long double);
@@ -193,7 +199,7 @@ static struct custom_operations caml_ldouble_ops = {
 value ctypes_copy_ldouble(long double u)
 {
   value res = caml_alloc_custom(&caml_ldouble_ops, sizeof(long double), 0, 1);
-  ldouble_custom_val(res) = u;
+  memcpy(Data_custom_val(res), &u, sizeof(u));
   return res;
 }
 
@@ -213,7 +219,9 @@ CAMLprim value ctypes_ldouble_of_int(value a) {
 }
 CAMLprim value ctypes_ldouble_to_int(value a) {
   CAMLparam1(a);
-  CAMLreturn(Val_long(ldouble_custom_val(a)));
+  long double b = ldouble_custom_val(a);
+  intnat c = b;
+  CAMLreturn(Val_long(c));
 }
 
 #define OP2(OPNAME, OP)                                                               \
@@ -261,12 +269,15 @@ FN1(sqrtl)
 FN1(expl)
 FN1(logl)
 FN1(log10l)
-#ifdef __NetBSD__
-FN1FAIL(expm1l)
-FN1FAIL(log1pl)
-#else
+#if CTYPES_HAVE_EXPM1L
 FN1(expm1l)
+#else
+FN1FAIL(expm1l)
+#endif
+#if CTYPES_HAVE_LOG1PL
 FN1(log1pl)
+#else
+FN1FAIL(log1pl)
 #endif
 FN1(cosl)
 FN1(sinl)
@@ -285,10 +296,10 @@ FN1(atanhl)
 FN1(ceill)
 FN1(floorl)
 FN1(fabsl)
-#ifdef __NetBSD__
-FN2FAIL(remainderl)
-#else
+#if CTYPES_HAVE_REMAINDERL
 FN2(remainderl)
+#else
+FN2FAIL(remainderl)
 #endif
 FN2(copysignl)
 
@@ -389,7 +400,7 @@ CAMLprim value ctypes_ldouble_format(value width, value prec, value d) {
 CAMLprim value ctypes_ldouble_of_string(value v) {
   CAMLparam1(v);
   char *str = String_val(v);
-  int len = caml_string_length(v);
+  mlsize_t len = caml_string_length(v);
   char *end;
   long double r;
   if (0 == len) caml_invalid_argument("LDouble.of_string");
@@ -436,41 +447,57 @@ value ctypes_ldouble_size(value unit) {
 
 /*********************** complex *************************/
 
-#define ldouble_complex_custom_val(V) (*(long double complex*)(Data_custom_val(V)))
+static inline ctypes_ldcomplex ldouble_complex_custom_val(value v)
+{
+  ctypes_ldcomplex r;
+  memcpy(&r, Data_custom_val(v), sizeof(r));
+  return r;
+}
 
 static int ldouble_complex_cmp_val(value v1, value v2)
 {
-  long double complex u1 = ldouble_complex_custom_val(v1);
-  long double complex u2 = ldouble_complex_custom_val(v2);
-  int cmp_real = ldouble_cmp(creall(u1), creall(u2));
-  return cmp_real == 0 ? ldouble_cmp(cimagl(u1), cimagl(u2)) : cmp_real;
+  ctypes_ldcomplex u1 = ldouble_complex_custom_val(v1);
+  ctypes_ldcomplex u2 = ldouble_complex_custom_val(v2);
+  int cmp_real = ldouble_cmp(ctypes_creall(u1), ctypes_creall(u2));
+  return cmp_real == 0 ? ldouble_cmp(ctypes_cimagl(u1), ctypes_cimagl(u2)) : cmp_real;
 }
 
 static intnat ldouble_complex_hash(value v) {
-  long double complex c = ldouble_complex_custom_val(v);
-  return ldouble_mix_hash(ldouble_mix_hash(0, creall(c)), cimagl(c));
+  ctypes_ldcomplex c = ldouble_complex_custom_val(v);
+  return ldouble_mix_hash(ldouble_mix_hash(0, ctypes_creall(c)), ctypes_cimagl(c));
 }
 
 static void ldouble_complex_serialize(value v, uintnat *wsize_32, uintnat *wsize_64) {
   long double re,im;
-  long double complex *p = Data_custom_val(v);
+  ctypes_ldcomplex c;
+  void * vv = Data_custom_val(v);
+#if 0&& defined(__GNUC__) && __GNUC__  == 6 && __GNUC_MINOR__ == 4
+  /* workaround gcc bug, observed only under Alpine Linux. gcc tries
+     to inline the memcpy call, but fails with an internal compiler
+     error */
+  void *(*volatile mymemcpy)(void*,const void*,size_t) = memcpy;
+  mymemcpy(&c, vv , sizeof(c));
+#else
+  memcpy(&c, vv , sizeof(c));
+#endif
   caml_serialize_int_1(LDBL_MANT_DIG);
-  re = creall(*p);
+  re = ctypes_creall(c);
   ldouble_serialize_data(&re);
-  im = cimagl(*p);
+  im = ctypes_cimagl(c);
   ldouble_serialize_data(&im);
-  *wsize_32 = *wsize_64 = sizeof(long double complex);
+  *wsize_32 = *wsize_64 = sizeof(ctypes_ldcomplex);
 }
 
 static uintnat ldouble_complex_deserialize(void *d) {
   long double re, im;
-  int size;
+  ctypes_ldcomplex c;
   if (caml_deserialize_uint_1() != LDBL_MANT_DIG)
     caml_deserialize_error("invalid long double size");
-  size = ldouble_deserialize_data(&re);
-  size += ldouble_deserialize_data(&im);
-  *(long double complex *)d = (re + im * I);
-  return (sizeof(long double complex));
+  ldouble_deserialize_data(&re);
+  ldouble_deserialize_data(&im);
+  c = CBUILD_LD(re, im);
+  memcpy(d, &c, sizeof(c));
+  return (sizeof(ctypes_ldcomplex));
 }
 
 static struct custom_operations caml_ldouble_complex_ops = {
@@ -483,14 +510,14 @@ static struct custom_operations caml_ldouble_complex_ops = {
   custom_compare_ext_default
 };
 
-value ctypes_copy_ldouble_complex(long double complex u)
+value ctypes_copy_ldouble_complex(ctypes_ldcomplex u)
 {
-  value res = caml_alloc_custom(&caml_ldouble_complex_ops, sizeof(long double complex), 0, 1);
-  ldouble_complex_custom_val(res) = u;
+  value res = caml_alloc_custom(&caml_ldouble_complex_ops, sizeof(ctypes_ldcomplex), 0, 1);
+  memcpy(Data_custom_val(res), &u, sizeof(u));
   return res;
 }
 
-long double complex ctypes_ldouble_complex_val(value v) {
+ctypes_ldcomplex ctypes_ldouble_complex_val(value v) {
   return ldouble_complex_custom_val(v);
 }
 
@@ -499,36 +526,43 @@ CAMLprim value ctypes_ldouble_complex_make(value r, value i) {
   CAMLparam2(r, i);
   long double re = ldouble_custom_val(r);
   long double im = ldouble_custom_val(i);
-  CAMLreturn(ctypes_copy_ldouble_complex(re + (im * I)));
+  ctypes_ldcomplex res = CBUILD_LD(re, im);
+  CAMLreturn(ctypes_copy_ldouble_complex(res));
 }
 
 /* real : complex -> t */
 CAMLprim value ctypes_ldouble_complex_real(value v) {
   CAMLparam1(v);
-  CAMLreturn(ctypes_copy_ldouble(creall(ldouble_complex_custom_val(v))));
+  ctypes_ldcomplex c = ldouble_complex_custom_val(v);
+  long double res = ctypes_creall(c);
+  CAMLreturn(ctypes_copy_ldouble(res));
 }
 
 /* imag : complex -> t */
 CAMLprim value ctypes_ldouble_complex_imag(value v) {
   CAMLparam1(v);
-  CAMLreturn(ctypes_copy_ldouble(cimagl(ldouble_complex_custom_val(v))));
+  ctypes_ldcomplex c = ldouble_complex_custom_val(v);
+  long double res = ctypes_cimagl(c);
+  CAMLreturn(ctypes_copy_ldouble(res));
 }
 
-#define OP2(OPNAME, OP)                                                    \
-  CAMLprim value ctypes_ldouble_complex_ ## OPNAME(value a, value b) {     \
-    CAMLparam2(a, b);                                                      \
-    CAMLreturn(ctypes_copy_ldouble_complex(                                \
-        ldouble_complex_custom_val(a) OP ldouble_complex_custom_val(b) )); \
+#define OP2(OPNAME, OP)                                                 \
+  CAMLprim value ctypes_ldouble_complex_ ## OPNAME(value a, value b) {  \
+    CAMLparam2(a, b);                                                   \
+    CAMLreturn(ctypes_copy_ldouble_complex(                             \
+                 OP(ldouble_complex_custom_val(a),                      \
+                    ldouble_complex_custom_val(b) )));                  \
   }
 
-OP2(add, +)
-OP2(sub, -)
-OP2(mul, *)
-OP2(div, /)
+OP2(add, CADD_LD)
+OP2(sub, CSUB_LD)
+OP2(mul, CMUL_LD)
+OP2(div, CDIV_LD)
 
 CAMLprim value ctypes_ldouble_complex_neg(value a) {
   CAMLparam1(a);
-  CAMLreturn(ctypes_copy_ldouble_complex( - ldouble_complex_custom_val(a) ));
+  ctypes_ldcomplex res = CNEG_LD(ldouble_complex_custom_val(a));
+  CAMLreturn(ctypes_copy_ldouble_complex(res));
 }
 
 #define FN1(OP)                                                                   \
@@ -556,26 +590,45 @@ CAMLprim value ctypes_ldouble_complex_neg(value a) {
     caml_failwith("ctypes: " #OP " does not exist on current platform");   \
   }
 
+#if CTYPES_HAVE_CONJL
 FN1(conjl)
-FN1(csqrtl)
-
-/* Android: As of API level 24, these functions do not exist.
-   Freebsd: still missing in FreeBSD 11.0-RELEASE-p2
- */
-#if defined(__ANDROID__) || defined(__FreeBSD__)
-FN1FAIL(cexpl)
-FN1FAIL(clogl)
-FN2FAIL(cpowl)
 #else
-FN1(cexpl)
-FN1(clogl)
-FN2(cpowl)
+FN1FAIL(conjl)
 #endif
 
+#if CTYPES_HAVE_CSQRTL
+FN1(csqrtl)
+#else
+FN1FAIL(csqrtl)
+#endif
+
+#if CTYPES_HAVE_CEXPL
+FN1(cexpl)
+#else
+FN1FAIL(cexpl)
+#endif
+
+#if CTYPES_HAVE_CLOGL
+FN1(clogl)
+#else
+FN1FAIL(clogl)
+#endif
+
+#if CTYPES_HAVE_CPOWL
+FN2(cpowl)
+#else
+FN2FAIL(cpowl)
+#endif
+
+#if CTYPES_HAVE_CARGL
 CAMLprim value ctypes_ldouble_complex_cargl(value a) {
   CAMLparam1(a);
-  CAMLreturn(ctypes_copy_ldouble( cargl(ldouble_complex_custom_val(a))));
+  long double r = cargl(ldouble_complex_custom_val(a));
+  CAMLreturn(ctypes_copy_ldouble(r));
 }
+#else
+FN1FAIL(cargl)
+#endif
 
 value ldouble_init(value unit) {
   nan_ = nanl(""); // platform dependant argument - use as cannonical nan

@@ -21,6 +21,11 @@
 
 #include <ffi.h>
 
+#include "../ctypes/ctypes_config.h"
+#if CTYPES_HAVE_ALLOCA_H
+#include <alloca.h>
+#endif
+
 #include "../ctypes/ctypes_managed_buffer_stubs.h"
 #include "../ctypes/ctypes_type_info_stubs.h"
 #include "../ctypes/ctypes_raw_pointer.h"
@@ -153,7 +158,7 @@ static struct callspec {
   ffi_cif *cif;
 
 } callspec_prototype = {
-  0, 0, 0, 0, BUILDING, NULL, -1, 0, { 0, 0 }, NULL
+  0, 0, 0, 0, BUILDING, NULL, -1, 0, { 0, 0, 0}, NULL
 };
 
 
@@ -222,15 +227,17 @@ static void populate_arg_array(struct callspec *callspec,
 value ctypes_allocate_callspec(value check_errno, value runtime_lock,
                                value thread_registration)
 {
+  value block;
+  struct callspec *spec;
   struct call_context context = {
     Int_val(check_errno),
     Int_val(runtime_lock),
     Int_val(thread_registration),
   };
 
-  value block = caml_alloc_custom(&callspec_custom_ops,
-                                  sizeof(struct callspec), 0, 1);
-  struct callspec *spec = Data_custom_val(block);
+  block = caml_alloc_custom(&callspec_custom_ops,
+                            sizeof(struct callspec), 0, 1);
+  spec = Data_custom_val(block);
   memcpy(spec, &callspec_prototype, sizeof(struct callspec));
   spec->context = context;
   return block;
@@ -247,13 +254,14 @@ value ctypes_add_argument(value callspec_, value argument_)
   CAMLparam2(callspec_, argument_);
   struct callspec *callspec = Data_custom_val(callspec_);
   ffi_type *argtype = CTYPES_TO_PTR(argument_);
+  int offset;
 
   assert (callspec->state == BUILDING);
 
   /* If there's a possibility that this spec represents an argument list or
      a struct we might pass by value then we have to take care to maintain
      the args, capacity and nelements members. */
-  int offset = aligned_offset(callspec->bytes, argtype->alignment);
+  offset = aligned_offset(callspec->bytes, argtype->alignment);
   callspec->bytes = offset + argtype->size;
 
   if (callspec->nelements + 2 >= callspec->capacity) {
@@ -588,11 +596,12 @@ value ctypes_make_function_pointer(value callspec_, value fnid)
   if (closure == NULL) {
     caml_raise_out_of_memory();
   } else {
+    ffi_status status;
     closure->fnkey = Long_val(fnid);
     closure->context = callspec->context;
     closure->fnptr = code_address;
 
-    ffi_status status =  ffi_prep_closure_loc
+    status = ffi_prep_closure_loc
       ((ffi_closure *)closure,
        callspec->cif,
        callback_handler,

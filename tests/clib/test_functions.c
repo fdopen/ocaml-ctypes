@@ -14,7 +14,6 @@
 #include <float.h>
 #include <assert.h>
 #include <string.h>
-#include <complex.h>
 #include <errno.h>
 #include <math.h>
 
@@ -31,6 +30,7 @@
 #endif
 
 #include "test_functions.h"
+#include "complex_helper.h"
 
 static int add(int x, int y) { return x + y; }
 static int times(int x, int y) { return x * y; }
@@ -405,94 +405,94 @@ float retrieve_FLT_MAX(void) { return FLT_MAX; }
 double retrieve_DBL_MIN(void) { return DBL_MIN; }
 double retrieve_DBL_MAX(void) { return DBL_MAX; }
 
-void add_complexd(double complex *l, double complex *r, double complex *out)
+void add_complexd(ctypes_dcomplex *l, ctypes_dcomplex *r, ctypes_dcomplex *out)
 {
-  *out = *l + *r;
+  *out = CADD_D(*l, *r);
 }
 
-void mul_complexd(double complex *l, double complex *r, double complex *out)
+void mul_complexd(ctypes_dcomplex *l, ctypes_dcomplex *r, ctypes_dcomplex *out)
 {
-  *out = *l * *r;
+  *out = CMUL_D(*l, *r);
 }
 
-void rotdist_complexd(double complex *c, double *r, double *out) {
-  double complex x = *c * (cos(*r) + sin(*r) * I);
-  *out = fabs(creal(x)) + fabs(cimag(x));
+void rotdist_complexd(ctypes_dcomplex *c, double *r, double *out) {
+  ctypes_dcomplex x = CMUL_D(*c, CBUILD_D(cos(*r), sin(*r)));
+  *out = fabs(ctypes_creal(x)) + fabs(ctypes_cimag(x));
 }
 
-void add_complexld(long double complex *l, long double complex *r, long double complex *out)
+void add_complexld(ctypes_ldcomplex *l, ctypes_ldcomplex *r, ctypes_ldcomplex *out)
 {
-  *out = *l + *r;
+  *out = CADD_LD(*l, *r);
 }
 
-void mul_complexld(long double complex *l, long double complex *r, long double complex *out)
+void mul_complexld(ctypes_ldcomplex *l, ctypes_ldcomplex *r, ctypes_ldcomplex *out)
 {
-  *out = *l * *r;
+  *out = CMUL_LD(*l, *r);
 }
 
-void rotdist_complexld(long double complex *c, long double *r, long double *out) {
-  long double complex x = *c * (cosl(*r) + sinl(*r) * I);
-  *out = fabsl(creall(x)) + fabsl(cimagl(x));
+void rotdist_complexld(ctypes_ldcomplex *c, long double *r, long double *out) {
+  ctypes_ldcomplex x = CMUL_LD(*c, CBUILD_LD(cosl(*r), sinl(*r)));
+  *out = fabsl(ctypes_creall(x)) + fabsl(ctypes_cimagl(x));
 }
 
-void add_complexf(float complex *l, float complex *r, float complex *out)
+void add_complexf(ctypes_fcomplex *l, ctypes_fcomplex *r, ctypes_fcomplex *out)
 {
-  *out = *l + *r;
+  *out = CADD_F(*l, *r);
 }
 
-void mul_complexf(float complex *l, float complex *r, float complex *out)
+void mul_complexf(ctypes_fcomplex *l, ctypes_fcomplex *r, ctypes_fcomplex *out)
 {
-  *out = *l * *r;
+  *out = CMUL_F(*l, *r);
 }
 
-void rotdist_complexf(float complex *c, float *r, float *out) {
-  float complex x = *c * (cosf(*r) + sinf(*r) * I);
-  *out = fabsf(crealf(x)) + fabsf(cimagf(x));
+void rotdist_complexf(ctypes_fcomplex *c, float *r, float *out) {
+  ctypes_fcomplex x = CMUL_F(*c, CBUILD_F(cosf(*r), sinf(*r)));
+  *out = fabsf(ctypes_crealf(x)) + fabsf(ctypes_cimagf(x));
 }
 
-long double complex add_complexld_val(long double complex l, long double complex r)
+ctypes_ldcomplex add_complexld_val(ctypes_ldcomplex l, ctypes_ldcomplex r)
 {
-  return l + r;
+  return CADD_LD(l, r);
 }
 
-long double complex mul_complexld_val(long double complex l, long double complex r)
+ctypes_ldcomplex mul_complexld_val(ctypes_ldcomplex l, ctypes_ldcomplex r)
 {
-  return l * r;
+  return CMUL_LD(l, r);
 }
 
-long double rotdist_complexld_val(long double complex c, long double r) {
-  long double complex x = c * (cosl(r) + sinl(r) * I);
-  return fabsl(creall(x)) + fabsl(cimagl(x));
+long double rotdist_complexld_val(ctypes_ldcomplex c, long double r) {
+  ctypes_ldcomplex x = CMUL_LD(c, CBUILD_LD(cosl(r), sinl(r)));
+  return fabsl(ctypes_creall(x)) + fabsl(ctypes_cimagl(x));
 }
 
-double complex add_complexd_val(double complex l, double complex r)
+ctypes_dcomplex add_complexd_val(ctypes_dcomplex l, ctypes_dcomplex r)
 {
-  return l + r;
+  return CADD_D(l, r);
 }
 
-double complex mul_complexd_val(double complex l, double complex r)
+ctypes_dcomplex mul_complexd_val(ctypes_dcomplex l, ctypes_dcomplex r)
 {
-  return l * r;
+  return CMUL_D(l,  r);
 }
 
-double rotdist_complexd_val(double complex c, double r) {
-  double complex x = c * (cos(r) + sin(r) * I);
-  return fabs(creal(x)) + fabs(cimag(x));
+double rotdist_complexd_val(ctypes_dcomplex c, double r) {
+  ctypes_dcomplex x = CMUL_D(c, CBUILD_D(cos(r), sin(r)));
+  return fabs(ctypes_creal(x)) + fabs(ctypes_cimag(x));
 }
 
-float complex add_complexf_val(float complex l, float complex r)
+ctypes_fcomplex add_complexf_val(ctypes_fcomplex l, ctypes_fcomplex r)
 {
-  return l + r;
+  return CADD_F(l, r);
 }
 
-float complex mul_complexf_val(float complex l, float complex r)
+ctypes_fcomplex mul_complexf_val(ctypes_fcomplex l, ctypes_fcomplex r)
 {
-  return l * r;
+  return CMUL_F(l,  r);
 }
 
-float rotdist_complexf_val(float complex c, float r) {
-  float complex x = c * (cosf(r) + sinf(r) * I);
-  return fabsf(crealf(x)) + fabsf(cimagf(x));
+float rotdist_complexf_val(ctypes_fcomplex c, float r) {
+  ctypes_fcomplex x = CMUL_F(c, CBUILD_F(cosf(r), sinf(r)));
+  return fabsf(ctypes_crealf(x)) + fabsf(ctypes_cimagf(x));
 }
 
 static int (*global_stored_callback)(int) = NULL;
@@ -795,7 +795,7 @@ typedef pthread_t thread_t;
 typedef void *(*start_routine)(void *);
 #else
 typedef HANDLE thread_t;
-typedef DWORD WINAPI (*start_routine)(void *);
+typedef DWORD (WINAPI *start_routine)(void *);
 #endif
 
 static int thread_create(thread_t *t, start_routine f, void * param)

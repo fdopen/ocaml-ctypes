@@ -250,7 +250,7 @@ let args = [
    | Entry point                                                     |
    +-----------------------------------------------------------------+ *)
 
-let () =
+let normal_main () =
   Arg.parse args ignore "check for external C libraries and available features\noptions are:";
 
   (* Test for MacOS X Homebrew. *)
@@ -280,3 +280,25 @@ let () =
   ListLabels.iter !setup_data
     ~f:(fun (name, args) ->
         Printf.printf "%s=%s\n" name (String.concat " " args))
+
+let win_main () =
+  set_binary_mode_out stdout true;
+  let ldir =
+    let open Commands in
+    String.trim (command "opam config var ctypes-foreign:lib").stdout in
+  if ldir <> "" then (
+    let lib_name = Filename.concat ldir "libffi.lib" in
+    if Sys.file_exists lib_name then (
+      Printf.printf
+        "libffi_available=true\nlibffi_opt=-I \"%s\"\nlibffi_lib=\"%s\"\n"
+        ldir lib_name;
+      exit 0;
+    );
+  );
+  normal_main ()
+
+let () =
+  if Sys.os_type = "Win32" then
+    win_main ()
+  else
+    normal_main ()

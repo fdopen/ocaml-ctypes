@@ -2,9 +2,20 @@
 
 VPATH += tests
 
-CFLAGS += -I $(CURDIR)/src/ctypes -I $(CURDIR)/tests
+TESTS_INC_DIR := $(shell $(CYGPATH) $(CURDIR)/tests)
+CTYPES_HEADER_DIR := $(shell $(CYGPATH) $(CURDIR)/src/ctypes)
+CFLAGS += -I "$(CTYPES_HEADER_DIR)" -I "$(TESTS_INC_DIR)"
 
-CC=$(shell ocamlc -config | sed -n '/native_c_compiler/{ s/[^:]*://; p;}')
+ifneq (,$(filter win%,$(OCAML_SYSTEM)))
+OUTPUTEXE=/Fe:
+else
+EMPTY_VAR=
+OUTPUTEXE=-o $(EMPTY_VAR)
+endif
+
+CC := $(shell $(OCAMLFIND) ocamlc -config | tr -d '\015' | sed -n '/native_c_compiler/{ s/[^:]*://; p;}')
+
+PKG_LWT_PREEMPTIVE:=$(shell if $(OCAMLFIND) query lwt.preemptive >/dev/null 2>&1; then echo lwt.preemptive ; else echo lwt.unix; fi)
 
 # tests-common subproject
 tests-common.dir = tests/tests-common
@@ -298,7 +309,7 @@ tests/test-enums/generated_bindings.ml: $(BUILDDIR)/test-enums-stub-generator.$(
 tests/test-enums/stubs/generated_struct_bindings.ml: $(BUILDDIR)/test-enums-ml-struct-stub-generator.$(BEST)
 	$< > $@
 $(BUILDDIR)/test-enums-ml-struct-stub-generator.$(BEST): $(BUILDDIR)/tests/test-enums/generated_struct_stubs.c
-	$(CC) -I `$(OCAMLFIND) ocamlc -where | sed 's|\r$$||'` $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) -o $@ $^
+	$(CC) -I "$(OCAML_STD_LIBDIR)" $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) $(OUTPUTEXE)$@ $^
 $(BUILDDIR)/tests/test-enums/generated_struct_stubs.c: $(BUILDDIR)/test-enums-struct-stub-generator.$(BEST)
 	$< --c-struct-file $@
 
@@ -341,7 +352,7 @@ tests/test-structs/generated_bindings.ml: $(BUILDDIR)/test-structs-stub-generato
 tests/test-structs/generated_struct_bindings.ml: $(BUILDDIR)/test-structs-ml-stub-generator.$(BEST)
 	$< > $@
 $(BUILDDIR)/test-structs-ml-stub-generator.$(BEST): $(BUILDDIR)/tests/test-structs/generated_struct_stubs.c
-	$(CC) -I `$(OCAMLFIND) ocamlc -where | sed 's|\r$$||'` $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) -o $@ $^
+	$(CC) -I "$(OCAML_STD_LIBDIR)" $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) $(OUTPUTEXE)$@ $^
 $(BUILDDIR)/tests/test-structs/generated_struct_stubs.c: $(BUILDDIR)/test-structs-stub-generator.$(BEST)
 	$< --c-struct-file $@
 
@@ -384,7 +395,7 @@ tests/test-constants/generated_bindings.ml: $(BUILDDIR)/test-constants-stub-gene
 tests/test-constants/generated_struct_bindings.ml: $(BUILDDIR)/test-constants-ml-stub-generator.$(BEST)
 	$< > $@
 $(BUILDDIR)/test-constants-ml-stub-generator.$(BEST): $(BUILDDIR)/tests/test-constants/generated_struct_stubs.c
-	$(CC) -I `$(OCAMLFIND) ocamlc -where | sed 's|\r$$||'` $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) -o $@ $^
+	$(CC) -I "$(OCAML_STD_LIBDIR)" $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) $(OUTPUTEXE)$@ $^
 $(BUILDDIR)/tests/test-constants/generated_struct_stubs.c: $(BUILDDIR)/test-constants-stub-generator.$(BEST)
 	$< --c-struct-file $@
 
@@ -512,7 +523,7 @@ tests/test-unions/generated_bindings.ml: $(BUILDDIR)/test-unions-stub-generator.
 tests/test-unions/generated_struct_bindings.ml: $(BUILDDIR)/test-unions-ml-stub-generator.$(BEST)
 	$< > $@
 $(BUILDDIR)/test-unions-ml-stub-generator.$(BEST): $(BUILDDIR)/tests/test-unions/generated_struct_stubs.c
-	$(CC) -I `$(OCAMLFIND) ocamlc -where | sed 's|\r$$||'` $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) -o $@ $^
+	$(CC) -I "$(OCAML_STD_LIBDIR)" $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) $(OUTPUTEXE)$@ $^
 $(BUILDDIR)/tests/test-unions/generated_struct_stubs.c: $(BUILDDIR)/test-unions-stub-generator.$(BEST)
 	$< --c-struct-file $@
 
@@ -690,7 +701,7 @@ test-type_printing-generated: $(test-type_printing-generated)
 tests/test-type_printing/generated_struct_bindings.ml: $(BUILDDIR)/test-type_printing-ml-stub-generator.$(BEST)
 	$< > $@
 $(BUILDDIR)/test-type_printing-ml-stub-generator.$(BEST): $(BUILDDIR)/tests/test-type_printing/generated_struct_stubs.c
-	$(CC) -I `$(OCAMLFIND) ocamlc -where | sed 's|\r$$||'` $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) -o $@ $^
+	$(CC) -I "$(OCAML_STD_LIBDIR)" $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) $(OUTPUTEXE)$@ $^
 $(BUILDDIR)/tests/test-type_printing/generated_struct_stubs.c: $(BUILDDIR)/test-type_printing-stub-generator.$(BEST)
 	$< --c-struct-file $@
 
@@ -1029,7 +1040,7 @@ tests/test-lwt-jobs/generated_bindings.ml: $(BUILDDIR)/test-lwt-jobs-stub-genera
 tests/test-lwt-jobs/generated_struct_bindings.ml: $(BUILDDIR)/test-lwt-jobs-ml-stub-generator.$(BEST)
 	$< > $@
 $(BUILDDIR)/test-lwt-jobs-ml-stub-generator.$(BEST): $(BUILDDIR)/tests/test-lwt-jobs/generated_struct_stubs.c
-	$(CC) -I `$(OCAMLFIND) ocamlc -where | sed 's|\r$$||'` $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) -o $@ $^
+	$(CC) -I "$(OCAML_STD_LIBDIR)" $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) $(OUTPUTEXE)$@ $^
 $(BUILDDIR)/tests/test-lwt-jobs/generated_struct_stubs.c: $(BUILDDIR)/test-lwt-jobs-stub-generator.$(BEST)
 	$< --c-struct-file $@
 
@@ -1050,7 +1061,7 @@ test-lwt-preemptive-stub-generator: $$(BEST_TARGET)
 
 test-lwt-preemptive.dir = tests/test-lwt-preemptive
 test-lwt-preemptive.threads = yes
-test-lwt-preemptive.deps = str bigarray oUnit bytes integers lwt.preemptive
+test-lwt-preemptive.deps = str bigarray oUnit bytes integers $(PKG_LWT_PREEMPTIVE)
 test-lwt-preemptive.subproject_deps = ctypes ctypes-foreign-base \
    ctypes-foreign-threaded cstubs tests-common test-lwt-preemptive-stubs
 test-lwt-preemptive.link_flags = -L$(BUILDDIR)/clib -ltest_functions
@@ -1072,7 +1083,7 @@ tests/test-lwt-preemptive/generated_bindings.ml: $(BUILDDIR)/test-lwt-preemptive
 tests/test-lwt-preemptive/generated_struct_bindings.ml: $(BUILDDIR)/test-lwt-preemptive-ml-stub-generator.$(BEST)
 	$< > $@
 $(BUILDDIR)/test-lwt-preemptive-ml-stub-generator.$(BEST): $(BUILDDIR)/tests/test-lwt-preemptive/generated_struct_stubs.c
-	$(CC) -I `$(OCAMLFIND) ocamlc -where | sed 's|\r$$||'` $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) -o $@ $^
+	$(CC) -I "$(OCAML_STD_LIBDIR)" $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) $(OUTPUTEXE)$@ $^
 $(BUILDDIR)/tests/test-lwt-preemptive/generated_struct_stubs.c: $(BUILDDIR)/test-lwt-preemptive-stub-generator.$(BEST)
 	$< --c-struct-file $@
 
@@ -1114,7 +1125,7 @@ tests/test-returning-errno-lwt-jobs/generated_bindings.ml: $(BUILDDIR)/test-retu
 tests/test-returning-errno-lwt-jobs/generated_struct_bindings.ml: $(BUILDDIR)/test-returning-errno-lwt-jobs-ml-stub-generator.$(BEST)
 	$< > $@
 $(BUILDDIR)/test-returning-errno-lwt-jobs-ml-stub-generator.$(BEST): $(BUILDDIR)/tests/test-returning-errno-lwt-jobs/generated_struct_stubs.c
-	$(CC) -I `$(OCAMLFIND) ocamlc -where | sed 's|\r$$||'` $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) -o $@ $^
+	$(CC) -I "$(OCAML_STD_LIBDIR)" $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) $(OUTPUTEXE)$@ $^
 $(BUILDDIR)/tests/test-returning-errno-lwt-jobs/generated_struct_stubs.c: $(BUILDDIR)/test-returning-errno-lwt-jobs-stub-generator.$(BEST)
 	$< --c-struct-file $@
 
@@ -1135,7 +1146,7 @@ test-returning-errno-lwt-preemptive-stub-generator: $$(BEST_TARGET)
 
 test-returning-errno-lwt-preemptive.dir = tests/test-returning-errno-lwt-preemptive
 test-returning-errno-lwt-preemptive.threads = yes
-test-returning-errno-lwt-preemptive.deps = str bigarray oUnit bytes integers lwt.preemptive
+test-returning-errno-lwt-preemptive.deps = str bigarray oUnit bytes integers $(PKG_LWT_PREEMPTIVE)
 test-returning-errno-lwt-preemptive.subproject_deps = ctypes ctypes-foreign-base \
    ctypes-foreign-threaded cstubs tests-common test-returning-errno-lwt-preemptive-stubs
 test-returning-errno-lwt-preemptive.link_flags = -L$(BUILDDIR)/clib -ltest_functions
@@ -1156,7 +1167,7 @@ tests/test-returning-errno-lwt-preemptive/generated_bindings.ml: $(BUILDDIR)/tes
 tests/test-returning-errno-lwt-preemptive/generated_struct_bindings.ml: $(BUILDDIR)/test-returning-errno-lwt-preemptive-ml-stub-generator.$(BEST)
 	$< > $@
 $(BUILDDIR)/test-returning-errno-lwt-preemptive-ml-stub-generator.$(BEST): $(BUILDDIR)/tests/test-returning-errno-lwt-preemptive/generated_struct_stubs.c
-	$(CC) -I `$(OCAMLFIND) ocamlc -where | sed 's|\r$$||'` $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) -o $@ $^
+	$(CC) -I "$(OCAML_STD_LIBDIR)" $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) $(OUTPUTEXE)$@ $^
 $(BUILDDIR)/tests/test-returning-errno-lwt-preemptive/generated_struct_stubs.c: $(BUILDDIR)/test-returning-errno-lwt-preemptive-stub-generator.$(BEST)
 	$< --c-struct-file $@
 
@@ -1198,7 +1209,7 @@ tests/test-returning-errno/generated_bindings.ml: $(BUILDDIR)/test-returning-err
 tests/test-returning-errno/generated_struct_bindings.ml: $(BUILDDIR)/test-returning-errno-ml-stub-generator.$(BEST)
 	$< > $@
 $(BUILDDIR)/test-returning-errno-ml-stub-generator.$(BEST): $(BUILDDIR)/tests/test-returning-errno/generated_struct_stubs.c
-	$(CC) -I `$(OCAMLFIND) ocamlc -where | sed 's|\r$$||'` $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) -o $@ $^
+	$(CC) -I "$(OCAML_STD_LIBDIR)" $(CFLAGS) $(LDFLAGS) $(WINLDFLAGS) $(OUTPUTEXE)$@ $^
 $(BUILDDIR)/tests/test-returning-errno/generated_struct_stubs.c: $(BUILDDIR)/test-returning-errno-stub-generator.$(BEST)
 	$< --c-struct-file $@
 
@@ -1276,7 +1287,7 @@ tests/test-closure-type-promotion/generated_bindings.ml: $(BUILDDIR)/test-closur
 test-ldouble.dir = tests/test-ldouble
 test-ldouble.threads = yes
 test-ldouble.deps = str bigarray oUnit bytes integers
-test-ldouble.subproject_deps = ctypes 
+test-ldouble.subproject_deps = ctypes cstubs ctypes-foreign-base ctypes-foreign-threaded tests-common
 test-ldouble: PROJECT=test-ldouble
 test-ldouble: $$(BEST_TARGET)
 
@@ -1298,7 +1309,9 @@ TESTS += test-foreign_values-stubs test-foreign_values-stub-generator test-forei
 TESTS += test-unions-stubs test-unions-stub-generator test-unions-generated test-unions
 TESTS += test-custom_ops
 TESTS += test-arrays-stubs test-arrays-stub-generator test-arrays-generated test-arrays
+ifeq (,$(filter win%,$(OCAML_SYSTEM)))
 TESTS += test-foreign-errno
+endif
 TESTS += test-passable
 TESTS += test-alignment
 TESTS += test-views-stubs test-views-stub-generator test-views-generated test-views
@@ -1324,21 +1337,31 @@ TESTS += test-closure-type-promotion-stubs test-closure-type-promotion-stub-gene
 TESTS += test-threads-stubs test-threads-stub-generator test-threads-generated test-threads
 TESTS += test-ldouble
 
-ifneq (,$(filter mingw%,$(OSYSTEM)))
+ifneq (,$(filter mingw%,$(OCAML_SYSTEM)))
 WINLDFLAGS=-Wl,--out-implib,libtest_functions.dll.a
 LDFLAGS+=-static-libgcc
 endif
 
-testlib: $(BUILDDIR)/clib/libtest_functions$(EXTDLL)
-$(BUILDDIR)/clib/libtest_functions$(EXTDLL): $(BUILDDIR)/clib/test_functions.o
+testlib: $(BUILDDIR)/clib/libtest_functions$(EXT_DLL)
+$(BUILDDIR)/clib/libtest_functions$(EXT_DLL): $(BUILDDIR)/clib/test_functions$(EXT_OBJ)
+ifneq (,$(filter win%,$(OCAML_SYSTEM)))
+	$(CC) /D_USRDLL /D_WINDLL $^ /link /DLL /OUT:$@
+	cp $@ $(BUILDDIR)
+else
 	$(CC) -shared $(LDFLAGS) $(WINLDFLAGS) -o $@ $^
-ifneq (,$(filter mingw%,$(OSYSTEM)))
+ifneq (,$(filter mingw%,$(OCAML_SYSTEM)))
 	cp $@ libtest_functions.dll.a $(BUILDDIR)
 endif
+endif
 
-$(BUILDDIR)/clib/test_functions.o: tests/clib/test_functions.c
+$(BUILDDIR)/clib/test_functions$(EXT_OBJ): tests/clib/test_functions.c
 	@mkdir -p $(@D)
-	$(CC) -c $(CFLAGS) -I `$(OCAMLFIND) ocamlc -where | sed 's|\r$$||'` -o $@ $^
+ifneq (,$(filter win%,$(OCAML_SYSTEM)))
+	$(CC) -c $(CFLAGS) /DCTYPES_DLL_EXTERN=1 -I "$(OCAML_STD_LIBDIR)" -Fo:$@ $^
+else
+	$(CC) -c $(CFLAGS) -I "$(OCAML_STD_LIBDIR)" -o $@ $^
+endif
+
 tests/clib/test_functions.c: tests/clib/test_functions.h
 
 .PHONY: test testlib $(TESTS) tests-common clean-tests
@@ -1355,5 +1378,5 @@ clean-tests:
 
 run-%:	$*
 	@echo running $*
-	@cd $(BUILDDIR) && CAML_LD_LIBRARY_PATH=. LD_LIBRARY_PATH=clib DYLD_LIBRARY_PATH=clib ./$*.$(BEST) -runner sequential
+	@cd $(BUILDDIR) && OCAML_SYSTEM=$(OCAML_SYSTEM) CAML_LD_LIBRARY_PATH=. LD_LIBRARY_PATH=clib DYLD_LIBRARY_PATH=clib ./$*.$(BEST) -runner sequential
 

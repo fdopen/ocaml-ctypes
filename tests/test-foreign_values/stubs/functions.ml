@@ -34,5 +34,6 @@ end
 module Stubs (F: Ctypes.FOREIGN) =
 struct
   include Common(F)
-  let environ = F.(foreign_value "environ" (ptr string_opt))
+  let h x = if Sys.os_type = "Win32" then "_" ^ x else x
+  let environ = F.(foreign_value (h "environ") (ptr string_opt))
 end

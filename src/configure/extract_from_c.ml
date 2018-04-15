@@ -16,7 +16,14 @@ let read_output program =
   let channel = open_out input_filename in
   output_string channel program;
   close_out channel;
-  let output_filename = (Filename.chop_suffix input_filename ".c") ^ ".o" in
+  let ext_obj =
+    try
+      match Sys.getenv "OCAML_SYSTEM" with
+      | "win32" | "win64" -> ".obj"
+      | _ -> ".o"
+    with
+    | Not_found -> ".o" in
+  let output_filename = (Filename.chop_suffix input_filename ".c") ^ ext_obj in
   let cwd = Sys.getcwd () in
   let cmd =
     Printf.sprintf "%s ocamlc -verbose %s %s -c 1>&2"
@@ -52,11 +59,15 @@ let extract s =
   String.sub s begin_pos (end_pos - begin_pos)
 
 let headers = "\
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#define __USE_MINGW_ANSI_STDIO 1
+#include <stdio.h> /* see: https://sourceforge.net/p/mingw-w64/bugs/627/ */
+#endif
 #include <stdint.h>
 #include <stdbool.h>
-#include <complex.h>
 #include <inttypes.h>
 #include <caml/mlvalues.h>
+#include \"ctypes_types.h\"
 "
 
 let integer ?(extra_headers="") expression =
@@ -90,7 +101,7 @@ let string ?(extra_headers="") expression =
 #define STRINGIFY1(x) #x
 #define STRINGIFY(x) STRINGIFY1(x)
 
-#if __USE_MINGW_ANSI_STDIO && defined(__MINGW64__)
+#if defined(__MINGW64__)
 #define REAL_ARCH_INTNAT_PRINTF_FORMAT \"ll\"
 #else
 #define REAL_ARCH_INTNAT_PRINTF_FORMAT ARCH_INTNAT_PRINTF_FORMAT

@@ -18,11 +18,13 @@ let test_calling_builtins _ =
   let open Bindings in
   let u1 = of_int 0x77
   and u2 = of_int 0x8 in
-  let expected = Infix.(u1 lor u2) in
+  (* __sync_or_and_fetch and _InterlockedAnd8 differ slightly *)
+  let expected1 = Infix.(u1 lor u2) in
+  let expected2 = if Tests_common.is_msvc then u1 else expected1 in
 
   let p = allocate uint8_t u1 in
-  assert (__sync_or_and_fetch p u2 = expected);
-  assert (!@p = expected);
+  assert (__sync_or_and_fetch p u2 = expected2);
+  assert (!@p = expected1);
 
   p <-@ u1;
   assert (__sync_fetch_and_and p u2 = u1);

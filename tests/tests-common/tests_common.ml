@@ -80,3 +80,11 @@ let run ?concurrency ?errno ?(cheader="") argv ?structs specs =
         Cstubs_structs.write_c fmt specs)
   end
 
+let is_msvc, is_mvsc32, is_mvsc64 =
+  try
+    match Sys.getenv "OCAML_SYSTEM" with
+    | "win32" -> true, true, false
+    | "win64" -> true, false, true
+    | _ -> false, false, false
+  with
+  | Not_found -> false, false, false

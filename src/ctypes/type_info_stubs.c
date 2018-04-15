@@ -5,14 +5,13 @@
  * See the file LICENSE for details.
  */
 
-#if !__USE_MINGW_ANSI_STDIO && (defined(__MINGW32__) || defined(__MINGW64__))
+#if defined(__MINGW32__) || defined(__MINGW64__)
 #define __USE_MINGW_ANSI_STDIO 1
 #endif
 
 #include <inttypes.h>
 #include <stdio.h>
 #include <assert.h>
-#include <complex.h>
 #include <string.h>
 #include <stdbool.h>
 
@@ -22,11 +21,12 @@
 #include "ocaml_integers.h"
 #include "ctypes_type_info_stubs.h"
 #include "ctypes_complex_stubs.h"
+#include "complex_helper.h"
 #include "ctypes_ldouble_stubs.h"
 #include "ctypes_raw_pointer.h"
 #include "ctypes_primitives.h"
 
-#if __USE_MINGW_ANSI_STDIO && defined(__MINGW64__)
+#if defined(__MINGW64__)
 #define REAL_ARCH_INTNAT_PRINTF_FORMAT "ll"
 #else
 #define REAL_ARCH_INTNAT_PRINTF_FORMAT ARCH_INTNAT_PRINTF_FORMAT
@@ -68,9 +68,9 @@ value ctypes_read(value prim_, value buffer_)
    case Ctypes_Float: b = caml_copy_double(*(float *)buf); break;
    case Ctypes_Double: b = caml_copy_double(*(double *)buf); break;
    case Ctypes_LDouble: b = ctypes_copy_ldouble(*(long double *)buf); break;
-   case Ctypes_Complex32: b = ctypes_copy_float_complex(*(float complex *)buf); break;
-   case Ctypes_Complex64: b = ctypes_copy_double_complex(*(double complex *)buf); break;
-   case Ctypes_Complexld: b = ctypes_copy_ldouble_complex(*(long double complex *)buf); break;
+   case Ctypes_Complex32: b = ctypes_copy_float_complex(*(ctypes_fcomplex *)buf); break;
+   case Ctypes_Complex64: b = ctypes_copy_double_complex(*(ctypes_dcomplex *)buf); break;
+   case Ctypes_Complexld: b = ctypes_copy_ldouble_complex(*(ctypes_ldcomplex *)buf); break;
    default:
     assert(0);
   }
@@ -112,9 +112,9 @@ value ctypes_write(value prim_, value v, value buffer_)
    case Ctypes_Float: *(float *)buf = Double_val(v); break;
    case Ctypes_Double: *(double *)buf = Double_val(v); break;
    case Ctypes_LDouble: *(long double *)buf = ctypes_ldouble_val(v); break;
-   case Ctypes_Complex32: *(float complex *)buf = ctypes_float_complex_val(v); break;
-   case Ctypes_Complex64: *(double complex *)buf = ctypes_double_complex_val(v); break;
-   case Ctypes_Complexld: *(long double complex *)buf = ctypes_ldouble_complex_val(v); break;
+   case Ctypes_Complex32: *(ctypes_fcomplex *)buf = ctypes_float_complex_val(v); break;
+   case Ctypes_Complex64: *(ctypes_dcomplex *)buf = ctypes_double_complex_val(v); break;
+   case Ctypes_Complexld: *(ctypes_ldcomplex *)buf = ctypes_ldouble_complex_val(v); break;
    default:
     assert(0);
   }
@@ -161,18 +161,18 @@ value ctypes_string_of_prim(value prim_, value v)
   case Ctypes_Double: len = snprintf(buf, sizeof buf, "%.12g", Double_val(v)); break;
   case Ctypes_LDouble: len = snprintf(buf, sizeof buf, "%.12Lg", ctypes_ldouble_val(v)); break;
   case Ctypes_Complex32: {
-    float complex c = ctypes_float_complex_val(v);
-    len = snprintf(buf, sizeof buf, "%.12g+%.12gi", crealf(c), cimagf(c));
+    ctypes_fcomplex c = ctypes_float_complex_val(v);
+    len = snprintf(buf, sizeof buf, "%.12g+%.12gi", ctypes_crealf(c), ctypes_cimagf(c));
     break;
   }
   case Ctypes_Complex64: {
-    double complex c = ctypes_double_complex_val(v);
-    len = snprintf(buf, sizeof buf, "%.12g+%.12gi", creal(c), cimag(c));
+    ctypes_dcomplex c = ctypes_double_complex_val(v);
+    len = snprintf(buf, sizeof buf, "%.12g+%.12gi", ctypes_creal(c), ctypes_cimag(c));
     break;
   }
   case Ctypes_Complexld: {
-    long double complex c = ctypes_ldouble_complex_val(v);
-    len = snprintf(buf, sizeof buf, "%.12Lg+%.12Lgi", creall(c), cimagl(c));
+    ctypes_ldcomplex c = ctypes_ldouble_complex_val(v);
+    len = snprintf(buf, sizeof buf, "%.12Lg+%.12Lgi", ctypes_creall(c), ctypes_cimagl(c));
     break;
   }
   default:

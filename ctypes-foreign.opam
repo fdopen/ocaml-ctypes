@@ -16,6 +16,9 @@ depexts: [
   [ ["opensuse"] ["libffi-devel"] ]
   [ ["win32" "cygwinports"] ["libffi" "pkg-config"] ]
  ]
+build: [
+  [ "sh" "msvc-libffi/build.sh" ] { os = "win32" }
+]
 tags: ["org:ocamllabs" "org:mirage"]
 post-messages: [
   "This package requires libffi on your system" {failure}

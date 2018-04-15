@@ -116,6 +116,18 @@ let test_conv _ =
   List.iter (fun a -> assert_bool "to/of_float" (a = LDouble.(to_float (of_float a)))) flts;
   assert_bool "to_int" (3 = LDouble.(to_int (of_float 3.45)));
   assert_bool "to_int" (-34 = LDouble.(to_int (of_float (-34.999))));
+  if Sys.word_size = 32 then (
+    let mi = float_of_int min_int in
+    let ma = float_of_int max_int in
+    assert_bool "to_int" (min_int = LDouble.(to_int (of_float mi)));
+    assert_bool "to_int" (max_int = LDouble.(to_int (of_float ma)));
+  )
+  else (
+    let mi = -9007199254740991. in
+    let ma =  9007199254740991. in
+    assert_bool "to_int" (Int64.to_int (-9007199254740991L) = LDouble.(to_int (of_float mi)));
+    assert_bool "to_int" (Int64.to_int 9007199254740991L = LDouble.(to_int (of_float ma)));
+  );
   assert_bool "of_string" (3.5 = LDouble.(to_float (of_string "3.5")));
   assert_bool "to_string" ("3.500000" = LDouble.(to_string (of_float 3.5)))
 
@@ -171,6 +183,22 @@ let test_complex _ =
   assert_chkf "norm" C.norm ComplexL.norm;
   assert_chkf "arg" C.arg ComplexL.arg;
   assert_polar ()
+
+let test_complex_nan_inf _ =
+  let module C = Complex in
+  let a = ComplexL.of_complex { C.re = infinity ; im = infinity } in
+  let b = ComplexL.of_complex { C.re = 0. ; im = infinity } in
+  let res = ComplexL.(to_complex (mul a b)) in
+  assert ( classify_float res.C.re = FP_infinite );
+  assert ( classify_float res.C.im = FP_infinite );
+  let a = ComplexL.of_complex { C.re = infinity ; im = nan } in
+  let b = ComplexL.of_complex { C.re = 1. ; im = 2. } in
+  let res = ComplexL.(to_complex (div a b)) in
+  assert ( classify_float res.C.re = FP_infinite );
+  assert ( classify_float res.C.im = FP_infinite );
+  let c = ComplexL.of_complex { C.re = 1. ; im = 0. } in
+  let res = ComplexL.(to_complex (div c a)) in
+  assert ( res.C.re = 0. && res.C.im = 0. )
 
 let test_marshal _ = 
   let same_repr x y =
@@ -235,9 +263,12 @@ let test_comparisons _ =
 
 let test_int_conversions _ =
   begin
-    assert_equal max_int (LDouble.to_int
-			    (LDouble.of_int max_int))
-      ~printer:string_of_int;
+    let max_int' = LDouble.to_int(LDouble.of_int max_int) in
+    if not Tests_common.is_mvsc64 then
+      assert_equal max_int max_int' ~printer:string_of_int
+    else
+      assert_equal true
+        (max_int = max_int' || max_int' = int_of_float (float_of_int max_int));
 
     assert_equal min_int (LDouble.to_int
 			    (LDouble.of_int min_int))
@@ -256,6 +287,7 @@ let suite = "LDouble tests" >:::
     "test marshal" >:: test_marshal;
     "test comparisons" >:: test_comparisons;
     "test int conversions" >:: test_int_conversions;
+    "test ldcomplex with nan inf" >:: test_complex_nan_inf;
   ]
 
 let _ = run_test_tt_main suite

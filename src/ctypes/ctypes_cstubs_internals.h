@@ -10,6 +10,8 @@
 
 /* Types and functions used by generated C code. */
 
+#include "ctypes_config.h"
+#include "ctypes_types.h"
 #include "ctypes_primitives.h"
 #include "ctypes_complex_stubs.h"
 #include "ctypes_ldouble_stubs.h"
@@ -33,5 +35,11 @@ static inline value ctypes_pair_with_errno(value p)
   Store_field (v, 1, ctypes_copy_sint(errno));
   CAMLreturn (v);
 }
+
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#define ctypes_printf __mingw_printf
+#else
+#define ctypes_printf printf
+#endif
 
 #endif /* CTYPES_CSTUBS_INTERNALS_H */

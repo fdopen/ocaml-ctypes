@@ -41,12 +41,18 @@ GENERATED=src/ctypes/ctypes_primitives.ml	\
 OCAML_FFI_INCOPTS=$(libffi_opt)
 export CFLAGS DEBUG
 
-EXTDLL:=$(shell $(OCAMLFIND) ocamlc -config | awk '/^ext_dll:/{print $$2}')
-OSYSTEM:=$(shell $(OCAMLFIND) ocamlc -config | awk '/^system:/{print $$2}')
+EXT_OBJ:=$(shell $(OCAMLFIND) ocamlc -config | awk -F '[\t \r]+' '/^ext_obj:/{print $$2}')
+EXT_LIB:=$(shell $(OCAMLFIND) ocamlc -config | awk -F '[\t \r]+' '/^ext_lib:/{print $$2}')
+EXT_DLL:=$(shell $(OCAMLFIND) ocamlc -config | awk -F '[\t \r]+' '/^ext_dll:/{print $$2}')
+OCAML_SYSTEM:=$(shell $(OCAMLFIND) ocamlc -config | awk -F '[\t \r]+' '/^system:/{print $$2}')
+OCAML_STD_LIBDIR := $(shell $(OCAMLFIND) ocamlc -where | sed 's|\r$$||')
+export OCAML_SYSTEM
 
-ifneq (,$(filter mingw%,$(OSYSTEM)))
+ifneq (,$(filter mingw% win%,$(OCAML_SYSTEM)))
+CYGPATH=cygpath -m
 OS_ALT_SUFFIX=.win
 else
+CYGPATH=echo
 OS_ALT_SUFFIX=.unix
 endif
 

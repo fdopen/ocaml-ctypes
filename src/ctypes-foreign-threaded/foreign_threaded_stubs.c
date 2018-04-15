@@ -51,8 +51,32 @@ ctypes_tls_callback(void* a, DWORD reason, PVOID b)
   }
 }
 
+#if defined(__MINGW32__) || defined(__MINGW64__)
 PIMAGE_TLS_CALLBACK __crt_ctypes_tls_callback__ __attribute__ \
  ((section(".CRT$XLB"))) = ctypes_tls_callback;
+#else
+
+#ifdef _WIN64
+
+#pragma comment(linker, "/INCLUDE:_tls_used")
+#pragma comment(linker, "/INCLUDE:crt_ctypes_tls_callback")
+#pragma data_seg(push, old_seg)
+#pragma const_seg(".CRT$XLC")
+extern const PIMAGE_TLS_CALLBACK crt_ctypes_tls_callback;
+const PIMAGE_TLS_CALLBACK crt_ctypes_tls_callback = ctypes_tls_callback;
+#pragma data_seg(pop, old_seg)
+
+#else /* _WIN64 */
+
+#pragma comment(linker, "/INCLUDE:__tls_used")
+#pragma comment(linker, "/INCLUDE:_crt_ctypes_tls_callback")
+#pragma data_seg(push, old_seg)
+#pragma data_seg(".CRT$XLC")
+PIMAGE_TLS_CALLBACK crt_ctypes_tls_callback = ctypes_tls_callback;
+#pragma data_seg(pop, old_seg)
+
+#endif /* _WIN64 */
+#endif /* defined(__MINGW32__) || defined(__MINGW64__) */
 
 static int ctypes_thread_actually_register(void)
 {

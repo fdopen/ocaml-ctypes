@@ -8,19 +8,19 @@
 #ifndef CTYPES_COMPLEX_STUBS_H
 #define CTYPES_COMPLEX_STUBS_H
 
-#include <complex.h>
 #include <caml/mlvalues.h>
+#include "ctypes_types.h"
 
 /* ctypes_copy_float_complex : float complex -> Complex.t */
-value ctypes_copy_float_complex(float complex);
+value ctypes_copy_float_complex(ctypes_fcomplex);
 
 /* ctypes_copy_double_complex : double complex -> Complex.t */
-value ctypes_copy_double_complex(double complex);
+value ctypes_copy_double_complex(ctypes_dcomplex);
 
 /* ctypes_float_complex_val : Complex.t -> float complex */
-float complex ctypes_float_complex_val(value);
+ctypes_fcomplex ctypes_float_complex_val(value);
 
 /* ctypes_double_complex_val : Complex.t -> double complex */
-double complex ctypes_double_complex_val(value);
+ctypes_dcomplex ctypes_double_complex_val(value);
 
 #endif /* CTYPES_COMPLEX_STUBS_H */

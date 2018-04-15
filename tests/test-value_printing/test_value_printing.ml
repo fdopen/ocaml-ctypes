@@ -212,7 +212,15 @@ struct
 
     assert_equal (string_of float _FLT_MIN) (string_of_float _FLT_MIN);
     assert_equal (valid_float_lexem (string_of float 0.0)) (string_of_float 0.0);
-    assert_equal (string_of float nan) (string_of_float nan);
+    (* printf("%f\n", NAN); outputs more details: -nan(ind), nan(snan),...*)
+    let rex = Str.regexp "nan" in
+    let find_nan s =
+      try ignore (Str.search_forward rex s 0 : int); true
+      with Not_found -> false in
+    if not Tests_common.is_msvc then
+      assert_equal (string_of float nan) (string_of_float nan)
+    else
+      assert_equal true (find_nan (string_of float nan));
     assert_equal (string_of float infinity) (string_of_float infinity);
     assert_equal (string_of float _FLT_MAX) (string_of_float _FLT_MAX);
 
@@ -225,7 +233,10 @@ struct
     assert_equal (string_of double (-1.03)) (string_of_float (-1.03));
     assert_equal (string_of double (34.22)) (string_of_float (34.22));
     assert_equal (string_of double (1.39e16)) (string_of_float (1.39e16));
-    assert_equal (string_of double nan) (string_of_float nan);
+    if not Tests_common.is_msvc then
+      assert_equal (string_of double nan) (string_of_float nan)
+    else
+      assert_equal true (find_nan (string_of double nan));
     assert_equal (string_of double infinity) (string_of_float infinity);
     assert_equal (string_of double _DBL_MAX) (string_of_float _DBL_MAX);
 
@@ -271,7 +282,7 @@ let test_struct_printing _ =
 
   begin
     setf vs a (CArray.of_list int [4; 5; 6]);
-    setf vs d nan;
+    setf vs d infinity;
     setf vs c 'a';
 
     setf vt ts vs;
@@ -279,7 +290,7 @@ let test_struct_printing _ =
 
     assert_bool "struct printing"
       (equal_ignoring_whitespace
-         "{ts = { arr = {4, 5, 6}, dbl = nan, chr = 'a' }, ti = 14}"
+         "{ts = { arr = {4, 5, 6}, dbl = inf, chr = 'a' }, ti = 14}"
          (string_of t vt))
   end
 
