@@ -1,5 +1,3 @@
-os: unstable
-
 platform:
   - x86
 
@@ -8,10 +6,13 @@ environment:
   FORK_USER: ocaml
   FORK_BRANCH: master
   CYG_ROOT: C:\cygwin64
+  PINS: "ctypes-foreign:https://github.com/fdopen/ocaml-ctypes.git#msvc"
   EXTRA_DEPS: ctypes-foreign
   matrix:
-    - OPAM_SWITCH: 4.05.0+mingw64c
-    - OPAM_SWITCH: 4.05.0+mingw32c
+    - OPAM_SWITCH: 4.06.1+msvc64c
+    - OPAM_SWITCH: 4.06.1+msvc32c
+    - OPAM_SWITCH: 4.06.1+mingw64c
+    - OPAM_SWITCH: 4.06.1+mingw32c
 
 install:
   - ps: iex ((new-object net.webclient).DownloadString("https://raw.githubusercontent.com/$env:FORK_USER/ocaml-ci-scripts/$env:FORK_BRANCH/appveyor-install.ps1"))

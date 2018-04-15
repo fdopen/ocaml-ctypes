@@ -28,6 +28,7 @@ install_on_osx () {
   sudo hdiutil attach XQuartz-2.7.6.dmg
   sudo installer -verbose -pkg /Volumes/XQuartz-2.7.6/XQuartz.pkg -target /
   brew update
+  brew upgrade python || true
   brew reinstall ocaml
   brew install libffi opam
   opam init
