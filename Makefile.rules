@@ -10,6 +10,7 @@ CFLAGS=-O2 -Gy- $(OCAML_FFI_INCOPTS) -I "$(package_integers_path)"
 else
 ifneq (,$(filter mingw%,$(OCAML_SYSTEM)))
 lib_process=-lpsapi
+OCAMLMKLIB_EXTRA_FLAGS=-ldopt "-link -static-libgcc" # see GPR#1535
 ifeq ($(DEBUG),false)
   CFLAGS=-std=c99 -Wall -O3 $(OCAML_FFI_INCOPTS) "-I$(package_integers_path)"
 else
@@ -99,10 +100,10 @@ $(BUILDDIR)/%.cmxa: $$(NATIVE_OBJECTS)
 	$(OCAMLFIND) opt -a -linkall $(OCAMLFLAGS) $(THREAD_FLAG) $(OCAMLFIND_PACKAGE_FLAGS) $(CMXA_OPTS) -o $@ $(NATIVE_OBJECTS) $(OCAML_LINK_FLAGS)
 
 $(BUILDDIR)/dll%_stubs$(EXT_DLL): $$(C_OBJECTS)
-	$(OCAMLMKLIB) -o $(BUILDDIR)/$*_stubs $^ $(OCAMLMKLIB_FLAGS)
+	$(OCAMLMKLIB) -o $(BUILDDIR)/$*_stubs $^ $(OCAMLMKLIB_FLAGS) $(OCAMLMKLIB_EXTRA_FLAGS)
 
 $(BUILDDIR)/dll%_stubs_xen$(EXT_DLL): $$(XEN_OBJECTS)
-	$(OCAMLMKLIB) -o $(BUILDDIR)/$*_stubs_xen $^ $(OCAMLMKLIB_FLAGS)
+	$(OCAMLMKLIB) -o $(BUILDDIR)/$*_stubs_xen $^ $(OCAMLMKLIB_FLAGS) $(OCAMLMKLIB_EXTRA_FLAGS)
 
 $(BUILDDIR)/%.cmxs : $$(NATIVE_OBJECTS)
 	$(OCAMLFIND) opt -shared -linkall $(OCAMLFLAGS) $(THREAD_FLAG) $(OCAMLFIND_PACKAGE_FLAGS) -o $@ $(NATIVE_OBJECTS) $(C_OBJECTS) $(OCAML_LINK_FLAGS)
